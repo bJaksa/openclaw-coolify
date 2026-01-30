@@ -106,6 +106,12 @@ if [ ! -f "$CONFIG_FILE" ]; then
     TOKEN="$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")"
   fi
 
+  # Fix SearXNG permissions (Container runs as UID 977, host mount might be root)
+  if [ -d "/app/searxng" ]; then
+      echo "🔧 Fixing permissions for SearXNG..."
+      chmod -R 777 /app/searxng
+  fi
+
   # Auto-generate SearXNG Secret Key
   SEARXNG_SETTINGS="/app/searxng/settings.yml"
   if [ -f "$SEARXNG_SETTINGS" ]; then
