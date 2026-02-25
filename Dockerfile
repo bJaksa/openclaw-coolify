@@ -100,9 +100,15 @@ FROM dependencies AS final
 WORKDIR /app
 COPY . .
 
+# Reinstall openclaw here to guarantee the binary lands in /usr/local/bin
+RUN if [ "$OPENCLAW_BETA" = "true" ]; then \
+    npm install -g openclaw@beta; \
+    else \
+    npm install -g openclaw; \
+    fi
+
 RUN ln -sf /data/.claude/bin/claude /usr/local/bin/claude || true && \
     ln -sf /data/.kimi/bin/kimi /usr/local/bin/kimi || true && \
-    ln -sf $(npm root -g)/../bin/openclaw /usr/local/bin/openclaw || true && \
     chmod +x /app/scripts/*.sh
 
 ENV PATH="/root/.local/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin:/data/.bun/bin:/data/.bun/install/global/bin:/data/.claude/bin:/data/.kimi/bin"
