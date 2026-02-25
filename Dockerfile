@@ -1,12 +1,15 @@
 # syntax=docker/dockerfile:1
-
 ########################################
 # Stage 1: Base System
 ########################################
 FROM node:20-bookworm-slim AS base
-
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_ROOT_USER_ACTION=ignore
+
+# Add Docker's official apt repo
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" > /etc/apt/sources.list.d/docker.list
 
 # Core packages + build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,12 +35,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sqlite3 \
     pass \
     chromium \
+    docker-ce-cli \
     && rm -rf /var/lib/apt/lists/*
 
 # 🔥 CRITICAL FIX (native modules)
 ENV PYTHON=/usr/bin/python3 \
     npm_config_python=/usr/bin/python3
-
 RUN ln -sf /usr/bin/python3 /usr/bin/python && \
     npm install -g node-gyp
 
@@ -45,7 +48,6 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python && \
 # Stage 2: Runtimes
 ########################################
 FROM base AS runtimes
-
 ENV BUN_INSTALL="/data/.bun" \
     PATH="/usr/local/go/bin:/data/.bun/bin:/data/.bun/install/global/bin:$PATH"
 
@@ -55,14 +57,12 @@ RUN curl -fsSL https://bun.sh/install | bash
 # Python tools
 RUN pip3 install ipython csvkit openpyxl python-docx pypdf botasaurus browser-use playwright --break-system-packages && \
     playwright install-deps
-
 ENV XDG_CACHE_HOME="/data/.cache"
 
 ########################################
 # Stage 3: Dependencies
 ########################################
 FROM runtimes AS dependencies
-
 ARG OPENCLAW_BETA=false
 ENV OPENCLAW_BETA=${OPENCLAW_BETA} \
     OPENCLAW_NO_ONBOARD=1 \
@@ -83,7 +83,7 @@ RUN --mount=type=cache,target=/data/.npm \
     npm install -g openclaw@beta; \
     else \
     npm install -g openclaw; \
-    fi 
+    fi
 
 # Install uv explicitly
 RUN curl -L https://github.com/azlux/uv/releases/latest/download/uv-linux-x64 -o /usr/local/bin/uv && \
@@ -93,7 +93,7 @@ RUN curl -L https://github.com/azlux/uv/releases/latest/download/uv-linux-x64 -o
 RUN npm install -g @anthropic-ai/claude-code && \
     npm install -g @moonshot-ai/kimi-cli || true && \
     command -v uv
-    
+
 # Make sure uv and other local bins are available
 ENV PATH="/root/.local/bin:${PATH}"
 
@@ -101,7 +101,6 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Stage 4: Final
 ########################################
 FROM dependencies AS final
-
 WORKDIR /app
 COPY . .
 
