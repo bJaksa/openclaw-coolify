@@ -78,12 +78,11 @@ RUN --mount=type=cache,target=/data/.bun/install/cache \
 ENV PATH="/usr/local/bin:/usr/local/lib/node_modules/.bin:${PATH}"
 
 # OpenClaw (npm install)
-RUN --mount=type=cache,target=/data/.npm \
-    if [ "$OPENCLAW_BETA" = "true" ]; then \
-    npm install -g openclaw@beta; \
-    else \
-    npm install -g openclaw; \
-    fi 
+# Claude + Kimi
+RUN curl -fsSL https://claude.ai/install.sh | bash && \
+    curl -L https://code.kimi.com/install.sh | bash && \
+    command -v uv
+    
 
 # Install uv explicitly
 RUN curl -L https://github.com/azlux/uv/releases/latest/download/uv-linux-x64 -o /usr/local/bin/uv && \
