@@ -78,21 +78,22 @@ RUN --mount=type=cache,target=/data/.bun/install/cache \
 ENV PATH="/usr/local/bin:/usr/local/lib/node_modules/.bin:${PATH}"
 
 # OpenClaw (npm install)
-# Claude + Kimi
-RUN curl -fsSL https://claude.ai/install.sh | bash && \
-    curl -L https://code.kimi.com/install.sh | bash && \
-    command -v uv
-    
+RUN --mount=type=cache,target=/data/.npm \
+    if [ "$OPENCLAW_BETA" = "true" ]; then \
+    npm install -g openclaw@beta; \
+    else \
+    npm install -g openclaw; \
+    fi 
 
 # Install uv explicitly
 RUN curl -L https://github.com/azlux/uv/releases/latest/download/uv-linux-x64 -o /usr/local/bin/uv && \
     chmod +x /usr/local/bin/uv
 
 # Claude + Kimi
-RUN curl -fsSL https://claude.ai/install.sh | bash && \
-    curl -L https://code.kimi.com/install.sh | bash && \
+RUN npm install -g @anthropic-ai/claude-code && \
+    npm install -g @moonshot-ai/kimi-cli || true && \
     command -v uv
-
+    
 # Make sure uv and other local bins are available
 ENV PATH="/root/.local/bin:${PATH}"
 
